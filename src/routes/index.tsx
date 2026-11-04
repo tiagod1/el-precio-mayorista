@@ -41,7 +41,7 @@ function Catalog() {
   const [cartOpen, setCartOpen] = useState(false);
 
   const base = useMemo(() => {
-    const all = products.data ?? [];
+    const all = (products.data ?? []).filter((p) => !p.oculto);
     return settings.data?.ocultar_sin_stock ? all.filter(isAvailable) : all;
   }, [products.data, settings.data]);
 
