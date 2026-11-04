@@ -239,7 +239,7 @@ function CartSheet({ open, onOpenChange, whatsapp }: { open: boolean; onOpenChan
   const cart = useCart();
   const phone = whatsappDigits(whatsapp);
   function send() {
-    if (!phone) return toast.error("El número de WhatsApp todavía no fue configurado por el comercio.");
+    if (!phone) { toast.error("El número de WhatsApp todavía no fue configurado por el comercio."); return; }
     const url = `https://wa.me/${phone}?text=${encodeURIComponent(buildWhatsAppMessage(cart.items))}`;
     window.open(url, "_blank", "noopener");
   }

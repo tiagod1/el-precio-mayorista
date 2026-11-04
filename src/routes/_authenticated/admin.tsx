@@ -137,7 +137,7 @@ function ImportSection({ excluded, existing }: { excluded: string[]; existing: P
     if (f.size > 20 * 1024 * 1024) return setFatal("El archivo supera los 20 MB.");
     try {
       const wb = XLSX.read(await f.arrayBuffer(), { type: "array" });
-      const ws = wb.Sheets[wb.SheetNames[0]];
+      const first = wb.SheetNames[0]; const ws = first ? wb.Sheets[first] : undefined;
       if (!ws) return setFatal("El archivo no tiene hojas.");
       const matrix = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: "" });
       // Buscar la fila de encabezados entre las primeras 10
@@ -259,13 +259,13 @@ function SettingsSection({ s }: { s: { whatsapp: string | null; ocultar_sin_stoc
   async function save() {
     const digits = wa.replace(/\D/g, "");
     if (wa && (digits.length < 10 || digits.length > 15)) {
-      return toast.error("Número inválido. Usá formato internacional, ej: 549 + código de área + número.");
+      { toast.error("Número inválido. Usá formato internacional, ej: 549 + código de área + número."); return; }
     }
     setSaving(true);
     const familias = excl.split("\n").map((x) => x.trim().toUpperCase()).filter(Boolean);
     const { error } = await supabase.from("settings").update({ whatsapp: digits || null, ocultar_sin_stock: hide, familias_excluidas: familias }).eq("id", 1);
     setSaving(false);
-    if (error) return toast.error(`No se pudo guardar: ${error.message}`);
+    if (error) { toast.error(`No se pudo guardar: ${error.message}`); return; }
     toast.success("Configuración guardada");
     qc.invalidateQueries({ queryKey: ["settings"] });
   }
@@ -323,20 +323,20 @@ function AdminRow({ p }: { p: Product }) {
     setBusy(true);
     const { error } = await supabase.from("products").update(patch).eq("id", p.id);
     setBusy(false);
-    if (error) return toast.error(`No se pudo actualizar: ${error.message}`);
+    if (error) { toast.error(`No se pudo actualizar: ${error.message}`); return; }
     qc.invalidateQueries({ queryKey: ["products"] });
   }
 
   async function upload(f: File | undefined) {
     if (!f) return;
-    if (!f.type.startsWith("image/")) return toast.error("El archivo debe ser una imagen.");
-    if (f.size > 5 * 1024 * 1024) return toast.error("La imagen supera 5 MB.");
+    if (!f.type.startsWith("image/")) { toast.error("El archivo debe ser una imagen."); return; }
+    if (f.size > 5 * 1024 * 1024) { toast.error("La imagen supera 5 MB."); return; }
     setBusy(true);
     const ext = (f.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "");
     const safe = p.codigo.replace(/[^a-zA-Z0-9_-]/g, "_");
     const path = `${safe}/${Date.now()}.${ext}`;
     const { error } = await supabase.storage.from("product-photos").upload(path, f, { contentType: f.type });
-    if (error) { setBusy(false); return toast.error(`No se pudo subir: ${error.message}`); }
+    if (error) { setBusy(false); { toast.error(`No se pudo subir: ${error.message}`); return; } }
     if (p.foto_url) await supabase.storage.from("product-photos").remove([p.foto_url]);
     await update({ foto_url: path });
     toast.success("Foto actualizada");
