@@ -19,6 +19,16 @@ describe("reglas de importación", () => {
     const r = processRows([row({ Familia: "Bazar" })], ["BAZAR"]);
     expect(r.products).toHaveLength(0);
   });
+  it.each([
+    "01 - CONCEPTO NOTA DE CRÉDITO",
+    "01 - CONSUMO",
+    "08 - CONSUMO",
+    "01 - EMPAQUE Y EMBALAJE",
+  ])("excluye la familia solicitada %s sin omitir productos de almacén", (familia) => {
+    const r = processRows([row({ Familia: familia }), row({ Codigo: "2", Familia: "ALMACÉN" })], [familia]);
+    expect(r.excluded).toBe(1);
+    expect(r.products.map((p) => p.codigo)).toEqual(["2"]);
+  });
   it("detecta columnas faltantes", () => {
     expect(findMissingColumns(["Codigo", "Nombre", "Familia", "Proveedor principal", "Stock"])).toEqual(["Precio final"]);
   });
