@@ -62,7 +62,7 @@ function Catalog() {
         return terms.every((t) => hay.includes(t));
       }
       return true;
-    });
+    }).sort((a, b) => (a.proveedor ?? "~").localeCompare(b.proveedor ?? "~", "es") || a.nombre.localeCompare(b.nombre, "es"));
   }, [base, dq, cat, prov, soloStock]);
 
   const loading = products.isLoading || settings.isLoading;
