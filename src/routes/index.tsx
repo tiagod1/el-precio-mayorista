@@ -1,7 +1,18 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useDeferredValue, useMemo, useState } from "react";
-import { Search, ShoppingCart, Minus, Plus, Trash2, PackageOpen, X, ImageOff, Lock } from "lucide-react";
+import {
+  ArrowDown,
+  Search,
+  ShoppingCart,
+  Minus,
+  Plus,
+  Trash2,
+  PackageOpen,
+  X,
+  ImageOff,
+  Lock,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Brand } from "@/components/Brand";
 import { Button } from "@/components/ui/button";
@@ -70,17 +81,32 @@ function Catalog() {
 
   return (
     <div className="min-h-screen bg-background pb-28">
-      <header className="sticky top-0 z-30 bg-header text-primary-foreground shadow-md">
+      <header className="catalog-header sticky top-0 z-30 bg-header text-primary-foreground shadow-md">
         <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 pt-3 pb-2">
           <Brand />
-          <div className="ml-auto flex items-center gap-1">
-            <Link to="/admin" className="rounded-md p-2 opacity-80 hover:opacity-100" aria-label="Administración">
+          <div className="ml-auto flex items-center gap-2">
+            <Link
+              to="/admin"
+              className="admin-shortcut rounded-lg p-2 opacity-85 transition-opacity hover:opacity-100"
+              aria-label="Administración"
+            >
               <Lock className="h-4 w-4" />
+              <span className="hidden text-sm font-semibold sm:inline">Administración</span>
             </Link>
-            <button onClick={() => setCartOpen(true)} className="relative rounded-lg bg-primary-foreground/15 p-2.5" aria-label={`Ver carrito, ${cart.count} unidades`}>
+            <button
+              onClick={() => setCartOpen(true)}
+              className="cart-header-action relative rounded-lg bg-primary-foreground/15 p-2.5"
+              aria-label={`Ver carrito, ${cart.count} unidades`}
+            >
               <ShoppingCart className="h-5 w-5" />
+              <span className="hidden text-sm font-semibold sm:inline">Carrito</span>
               {cart.count > 0 && (
-                <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-accent px-1 text-[11px] font-bold text-accent-foreground">{cart.count}</span>
+                <span
+                  key={cart.count}
+                  className="cart-count-badge absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-accent px-1 text-[11px] font-bold text-accent-foreground"
+                >
+                  {cart.count}
+                </span>
               )}
             </button>
           </div>
@@ -101,13 +127,48 @@ function Catalog() {
         )}
       </header>
 
+      {!loading && !empty && (
+        <section
+          className="catalog-hero mx-auto mt-5 max-w-6xl px-4 sm:mt-7"
+          aria-labelledby="catalog-hero-title"
+        >
+          <div className="catalog-hero-panel">
+            <div className="catalog-hero-copy">
+              <span className="catalog-hero-label">Catálogo mayorista</span>
+              <h1 id="catalog-hero-title">Encontrá lo que tu negocio necesita.</h1>
+              <p>
+                Buscá por nombre, código o proveedor, sumá cantidades y enviá tu pedido para consultar por
+                WhatsApp.
+              </p>
+              <a href="#productos" className="catalog-hero-cta">
+                Explorar catálogo <ArrowDown className="h-4 w-4" aria-hidden="true" />
+              </a>
+            </div>
+            <div className="catalog-hero-steps" aria-label="Cómo hacer tu pedido">
+              <div>
+                <span>01</span>
+                <p>Elegí productos</p>
+              </div>
+              <div>
+                <span>02</span>
+                <p>Armá tu pedido</p>
+              </div>
+              <div>
+                <span>03</span>
+                <p>Consultá por WhatsApp</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
       {loading && <div className="mx-auto max-w-6xl px-4 py-16 text-center text-muted-foreground">Cargando catálogo…</div>}
       {products.isError && <div className="mx-auto max-w-6xl px-4 py-16 text-center text-destructive">No se pudo cargar el catálogo. Revisá tu conexión e intentá de nuevo.</div>}
 
       {empty && <EmptyCatalog />}
 
       {!loading && !empty && (
-        <main className="mx-auto max-w-6xl px-4">
+        <main id="productos" className="mx-auto max-w-6xl px-4 scroll-mt-40">
           <nav aria-label="Categorías" className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 py-3">
             {["TODAS", ...categorias].map((c) => (
               <button
@@ -140,8 +201,10 @@ function Catalog() {
           {filtered.length === 0 ? (
             <div className="py-16 text-center text-muted-foreground">No encontramos productos con esos filtros.</div>
           ) : (
-            <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-              {filtered.slice(0, limit).map((p) => <ProductCard key={p.id} p={p} />)}
+            <ul className="product-grid grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
+              {filtered.slice(0, limit).map((p, index) => (
+                <ProductCard key={p.id} p={p} index={index} />
+              ))}
             </ul>
           )}
           {filtered.length > limit && (
@@ -154,8 +217,13 @@ function Catalog() {
 
       {cart.count > 0 && !cartOpen && (
         <div className="fixed inset-x-0 bottom-0 z-30 px-4 pb-safe pt-2">
-          <button onClick={() => setCartOpen(true)} className="mx-auto flex w-full max-w-md items-center justify-between rounded-xl bg-primary px-4 py-3.5 text-primary-foreground shadow-lg">
-            <span className="flex items-center gap-2 font-semibold"><ShoppingCart className="h-5 w-5" /> Ver pedido ({cart.count})</span>
+          <button
+            onClick={() => setCartOpen(true)}
+            className="cart-dock mx-auto flex w-full max-w-md items-center justify-between rounded-xl bg-primary px-4 py-3.5 text-primary-foreground shadow-lg"
+          >
+            <span className="flex items-center gap-2 font-semibold">
+              <ShoppingCart className="h-5 w-5" /> Ver pedido ({cart.count})
+            </span>
             <span className="font-display font-black">{formatARS(cart.total)}</span>
           </button>
         </div>
@@ -185,16 +253,25 @@ function EmptyCatalog() {
   );
 }
 
-function ProductCard({ p }: { p: Product }) {
+function ProductCard({ p, index }: { p: Product; index: number }) {
   const cart = useCart();
   const ok = isAvailable(p);
   const inCart = cart.items.find((i) => i.codigo === p.codigo);
   const src = photoSrc(p.foto_url);
   return (
-    <li className="flex flex-col overflow-hidden rounded-xl border bg-card shadow-card">
-      <div className="relative aspect-square bg-muted">
+    <li
+      style={{ animationDelay: `${(index % 12) * 28}ms` }}
+      className={`product-card flex flex-col overflow-hidden rounded-xl border bg-card shadow-card ${inCart ? "product-card--in-cart" : ""}`}
+    >
+      <div className="product-image-stage relative aspect-square">
         {src ? (
-          <img src={src} alt={p.nombre} loading="lazy" decoding="async" className="h-full w-full object-contain p-2" />
+          <img
+            src={src}
+            alt={p.nombre}
+            loading="lazy"
+            decoding="async"
+            className="product-image h-full w-full object-contain p-3"
+          />
         ) : (
           <div className="grid h-full place-items-center text-muted-foreground/50"><ImageOff className="h-8 w-8" aria-hidden /></div>
         )}
@@ -204,13 +281,27 @@ function ProductCard({ p }: { p: Product }) {
       </div>
       <div className="flex flex-1 flex-col gap-1 p-3">
         <p className="text-[11px] text-muted-foreground">Cód. {p.codigo}</p>
-        <h3 className="line-clamp-3 font-sans text-sm font-semibold leading-snug">{p.nombre}</h3>
-        <p className="mt-auto pt-1 font-display text-lg font-black text-primary">{formatARS(p.precio)}</p>
+        <h3 className="line-clamp-3 min-h-[3.75rem] font-sans text-sm font-semibold leading-snug">
+          {p.nombre}
+        </h3>
+        <div className="mt-auto pt-2">
+          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+            Precio unitario
+          </p>
+          <p className="font-display text-lg font-black text-primary">{formatARS(p.precio)}</p>
+        </div>
         {inCart ? (
           <QtyControl codigo={p.codigo} qty={inCart.qty} />
         ) : (
-          <Button size="sm" className="h-9 w-full" disabled={!ok}
-            onClick={() => { cart.add({ codigo: p.codigo, nombre: p.nombre, precio: p.precio }); toast.success("Agregado al pedido"); }}>
+          <Button
+            size="sm"
+            className="cart-add-button h-9 w-full"
+            disabled={!ok}
+            onClick={() => {
+              cart.add({ codigo: p.codigo, nombre: p.nombre, precio: p.precio });
+              toast.success("Agregado al pedido");
+            }}
+          >
             {ok ? "Agregar" : "No disponible"}
           </Button>
         )}
@@ -222,7 +313,7 @@ function ProductCard({ p }: { p: Product }) {
 function QtyControl({ codigo, qty }: { codigo: string; qty: number }) {
   const cart = useCart();
   return (
-    <div className="flex h-9 items-center justify-between rounded-md border bg-secondary">
+    <div className="qty-control flex h-9 items-center justify-between rounded-md border bg-secondary">
       <button className="grid h-full w-9 place-items-center" onClick={() => cart.setQty(codigo, qty - 1)} aria-label="Restar uno"><Minus className="h-4 w-4" /></button>
       <input
         type="number" inputMode="numeric" min={0} value={qty}
@@ -245,14 +336,27 @@ function CartSheet({ open, onOpenChange, whatsapp }: { open: boolean; onOpenChan
   }
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="flex w-full flex-col p-0 sm:max-w-md">
-        <SheetHeader className="border-b p-4"><SheetTitle>Tu pedido</SheetTitle></SheetHeader>
+      <SheetContent side="right" className="cart-sheet-panel flex w-full flex-col p-0 sm:max-w-md">
+        <SheetHeader className="cart-sheet-header border-b p-5 text-left">
+          <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary">
+            Pedido de compra
+          </span>
+          <SheetTitle>Tu pedido</SheetTitle>
+          <p className="text-sm text-muted-foreground">
+            Revisá los productos y las cantidades antes de enviarlo.
+          </p>
+        </SheetHeader>
         {cart.items.length === 0 ? (
-          <div className="grid flex-1 place-items-center p-6 text-center text-muted-foreground">Todavía no agregaste productos.</div>
+          <div className="cart-empty-state grid flex-1 place-items-center p-6 text-center text-muted-foreground">
+            <div>
+              <ShoppingCart className="mx-auto mb-3 h-8 w-8 opacity-35" />
+              <p>Todavía no agregaste productos.</p>
+            </div>
+          </div>
         ) : (
           <ul className="flex-1 divide-y overflow-y-auto">
             {cart.items.map((it) => (
-              <li key={it.codigo} className="flex gap-3 p-4">
+              <li key={it.codigo} className="cart-line-item flex gap-3 p-4">
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold leading-snug">{it.nombre}</p>
                   <p className="text-xs text-muted-foreground">Cód. {it.codigo} · {formatARS(it.precio)} c/u</p>
@@ -266,7 +370,7 @@ function CartSheet({ open, onOpenChange, whatsapp }: { open: boolean; onOpenChan
             ))}
           </ul>
         )}
-        <div className="space-y-3 border-t bg-card p-4 pb-safe">
+        <div className="cart-summary space-y-3 border-t bg-card p-4 pb-safe">
           <div className="flex justify-between text-sm"><span>Subtotal ({cart.count} u.)</span><span>{formatARS(cart.total)}</span></div>
           <div className="flex justify-between text-lg font-black"><span>Total estimado</span><span className="text-primary">{formatARS(cart.total)}</span></div>
           <p className="text-xs text-muted-foreground">Precios sujetos a confirmación por el comercio.</p>
