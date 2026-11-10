@@ -319,7 +319,7 @@ function ProductCard({ p, index }: { p: Product; index: number }) {
           <p className="truncate text-[11px] text-muted-foreground">Cód. {p.codigo}{p.proveedor ? ` · ${p.proveedor}` : ""}</p>
           <h3 className="line-clamp-3 font-sans text-sm font-semibold leading-snug">{p.nombre}</h3>
           <div className="mt-auto pt-1.5">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Precio unitario</span>
+            <span className="block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Precio unitario</span>
             <p className="price-tag mt-0.5 inline-flex items-baseline rounded-md bg-highlight px-2 py-0.5 font-display text-lg font-black leading-tight text-highlight-foreground sm:text-xl">
               {formatARS(p.precio)}
             </p>
@@ -352,7 +352,7 @@ function QtyControl({ codigo, qty }: { codigo: string; qty: number }) {
       <input
         type="number" inputMode="numeric" min={0} value={qty}
         onChange={(e) => cart.setQty(codigo, Math.max(0, parseInt(e.target.value || "0", 10)))}
-        className="w-12 bg-transparent text-center text-base font-bold outline-none"
+        className="no-spin w-12 bg-transparent text-center text-base font-bold outline-none"
         aria-label="Cantidad"
       />
       <button className="grid h-full w-10 place-items-center rounded-r-lg transition-colors hover:bg-muted active:scale-90" onClick={() => cart.setQty(codigo, qty + 1)} aria-label="Sumar uno"><Plus className="h-4 w-4" /></button>
@@ -372,7 +372,7 @@ function CartSheet({ open, onOpenChange, whatsapp }: { open: boolean; onOpenChan
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
-        className="flex w-full flex-col gap-0 p-0 ease-[cubic-bezier(0.22,0.8,0.24,1)] data-[state=closed]:duration-200 data-[state=open]:duration-300 sm:max-w-md"
+        className="flex w-full flex-col gap-0 p-0 [&>button:first-child]:text-primary-foreground [&>button:first-child]:opacity-90 ease-[cubic-bezier(0.22,0.8,0.24,1)] data-[state=closed]:duration-200 data-[state=open]:duration-300 sm:max-w-md"
       >
         <SheetHeader className="border-b bg-header p-4 text-primary-foreground">
           <SheetTitle className="flex items-center gap-2 text-primary-foreground">
