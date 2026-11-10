@@ -30,6 +30,8 @@
   --color-destructive-foreground: var(--destructive-foreground);
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
+  --color-highlight: var(--highlight);
+  --color-highlight-foreground: var(--highlight-foreground);
   --color-whatsapp: var(--whatsapp);
   --color-whatsapp-foreground: var(--whatsapp-foreground);
   --color-border: var(--border);
@@ -91,8 +93,17 @@
   --sidebar-accent-foreground: oklch(0.25 0.03 40);
   --sidebar-border: oklch(0.9 0.015 75);
   --sidebar-ring: oklch(0.3 0.08 262);
+  /* Amarillo acento */
+  --highlight: oklch(0.88 0.17 92);
+  --highlight-foreground: oklch(0.24 0.07 262);
   --gradient-header: linear-gradient(135deg, oklch(0.26 0.07 262), oklch(0.36 0.1 258));
+  --gradient-hero:
+    radial-gradient(120% 140% at 100% 0%, oklch(0.42 0.12 255 / 85%) 0%, transparent 55%),
+    radial-gradient(80% 120% at 0% 100%, oklch(0.88 0.17 92 / 16%) 0%, transparent 60%),
+    linear-gradient(135deg, oklch(0.25 0.07 262), oklch(0.33 0.09 260));
   --shadow-card: 0 1px 2px oklch(0.3 0.03 40 / 6%), 0 6px 18px -8px oklch(0.3 0.03 40 / 18%);
+  --shadow-card-hover: 0 2px 4px oklch(0.3 0.06 262 / 8%), 0 14px 28px -12px oklch(0.3 0.08 262 / 32%);
+  --ease-out-soft: cubic-bezier(0.22, 0.8, 0.24, 1);
 }
 
 @layer base {
@@ -127,4 +138,106 @@
 }
 @utility pb-safe {
   padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+@utility bg-hero {
+  background-image: var(--gradient-hero);
+}
+@utility shadow-card-hover {
+  box-shadow: var(--shadow-card-hover);
+}
+@utility fade-edges {
+  mask-image: linear-gradient(to right, transparent 0, #000 1rem, #000 calc(100% - 1.5rem), transparent 100%);
+}
+
+/* ---------- Animaciones livianas (solo opacity/transform) ---------- */
+
+/* Aparición de tarjetas al desplazarse */
+.reveal {
+  opacity: 0;
+  transform: translate3d(0, 12px, 0);
+  transition:
+    opacity 0.38s var(--ease-out-soft),
+    transform 0.38s var(--ease-out-soft);
+  transition-delay: calc(var(--i, 0) * 40ms);
+}
+.reveal[data-visible="true"] {
+  opacity: 1;
+  transform: none;
+}
+
+/* Tarjeta de producto: elevación sutil al pasar el mouse */
+.product-card {
+  transition:
+    transform 0.2s var(--ease-out-soft),
+    box-shadow 0.2s var(--ease-out-soft),
+    border-color 0.2s ease;
+}
+.product-card .product-img {
+  transition: transform 0.35s var(--ease-out-soft);
+}
+@media (hover: hover) and (pointer: fine) {
+  .product-card:hover {
+    transform: translate3d(0, -3px, 0);
+    box-shadow: var(--shadow-card-hover);
+    border-color: color-mix(in oklab, var(--primary) 28%, var(--border));
+  }
+  .product-card:hover .product-img {
+    transform: scale(1.04);
+  }
+}
+
+@keyframes epm-pop {
+  0% { transform: scale(0.88); opacity: 0; }
+  60% { transform: scale(1.04); opacity: 1; }
+  100% { transform: scale(1); }
+}
+@keyframes epm-bump {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.28); }
+  100% { transform: scale(1); }
+}
+@keyframes epm-rise {
+  from { transform: translate3d(0, 110%, 0); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+@keyframes epm-fade-up {
+  from { transform: translate3d(0, 8px, 0); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+@keyframes epm-check {
+  0% { transform: scale(0.4) rotate(-12deg); opacity: 0; }
+  50% { transform: scale(1.1) rotate(0); opacity: 1; }
+  80% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(1); opacity: 0; }
+}
+
+.anim-pop { animation: epm-pop 0.28s var(--ease-out-soft) both; }
+.anim-bump { animation: epm-bump 0.36s var(--ease-out-soft); }
+.anim-rise { animation: epm-rise 0.32s var(--ease-out-soft) both; }
+.anim-fade-up { animation: epm-fade-up 0.32s var(--ease-out-soft) both; animation-delay: calc(var(--i, 0) * 35ms); }
+.anim-check { animation: epm-check 0.9s var(--ease-out-soft) both; }
+
+/* Respeta a quien prefiere menos movimiento */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+  .reveal {
+    opacity: 1;
+    transform: none;
+  }
+  .product-card:hover,
+  .product-card:hover .product-img {
+    transform: none !important;
+  }
+  .anim-check {
+    display: none;
+  }
 }

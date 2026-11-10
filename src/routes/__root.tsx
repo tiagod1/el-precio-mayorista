@@ -60,7 +60,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cut" },
-      { name: "theme-color", content: "#c8262b" },
+      { name: "theme-color", content: "#1e2d55" },
       { title: "El Precio Mayorista" },
       { name: "description", content: "Catálogo mayorista online de El Precio Mayorista." },
     ],
