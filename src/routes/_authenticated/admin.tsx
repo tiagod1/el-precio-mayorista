@@ -14,6 +14,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { fetchAllProducts, fetchSettings, formatDate, isAvailable, normalizeText, photoSrc, type Product } from "@/lib/catalog";
 import { findMissingColumns, formatARS, processRows, REQUIRED_COLUMNS, type ImportResult } from "@/lib/import-rules";
+import { OffersSection } from "@/components/admin/OffersSection";
+import { OrdersSection } from "@/components/admin/OrdersSection";
+import { StatsSection } from "@/components/admin/StatsSection";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({
@@ -95,8 +98,13 @@ function AdminContent() {
         <Stat label="Sin stock" value={(total - conStock).toLocaleString("es-AR")} />
         <Stat label="Última actualización" value={formatDate(settings.data?.ultima_actualizacion ?? null)} small />
       </section>
-      {settings.data && <ImportSection excluded={settings.data.familias_excluidas} existing={products.data ?? []} />}
+      <div className="grid gap-6 lg:grid-cols-2">
+        {settings.data && <ImportSection excluded={settings.data.familias_excluidas} existing={products.data ?? []} />}
+        <OffersSection products={products.data ?? []} />
+      </div>
       {settings.data && <SettingsSection key={JSON.stringify(settings.data)} s={settings.data} />}
+      <OrdersSection />
+      <StatsSection products={products.data ?? []} />
       <ProductsSection products={products.data ?? []} />
     </>
   );
@@ -319,12 +327,13 @@ function AdminRow({ p }: { p: Product }) {
   const qc = useQueryClient();
   const [busy, setBusy] = useState(false);
 
-  async function update(patch: Partial<Product>) {
+  async function update(patch: Partial<Product>): Promise<boolean> {
     setBusy(true);
     const { error } = await supabase.from("products").update(patch).eq("id", p.id);
     setBusy(false);
-    if (error) { toast.error(`No se pudo actualizar: ${error.message}`); return; }
+    if (error) { toast.error(`No se pudo actualizar: ${error.message}`); return false; }
     qc.invalidateQueries({ queryKey: ["products"] });
+    return true;
   }
 
   async function upload(f: File | undefined) {
@@ -337,15 +346,18 @@ function AdminRow({ p }: { p: Product }) {
     const path = `${safe}/${Date.now()}.${ext}`;
     const { error } = await supabase.storage.from("product-photos").upload(path, f, { contentType: f.type });
     if (error) { setBusy(false); { toast.error(`No se pudo subir: ${error.message}`); return; } }
+    if (!(await update({ foto_url: path }))) {
+      await supabase.storage.from("product-photos").remove([path]);
+      return;
+    }
     if (p.foto_url) await supabase.storage.from("product-photos").remove([p.foto_url]);
-    await update({ foto_url: path });
     toast.success("Foto actualizada");
   }
 
   async function removePhoto() {
     if (!p.foto_url) return;
+    if (!(await update({ foto_url: null }))) return;
     await supabase.storage.from("product-photos").remove([p.foto_url]);
-    await update({ foto_url: null });
     toast.success("Foto eliminada");
   }
 

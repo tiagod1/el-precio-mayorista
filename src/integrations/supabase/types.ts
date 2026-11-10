@@ -14,109 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      order_items: {
-        Row: {
-          codigo: string
-          created_at: string
-          id: string
-          line_total: number
-          nombre: string
-          order_id: string
-          precio_base: number
-          precio_unitario: number
-          product_id: string | null
-          promotion_id: string | null
-          qty: number
-        }
-        Insert: {
-          codigo: string
-          created_at?: string
-          id?: string
-          line_total: number
-          nombre: string
-          order_id: string
-          precio_base: number
-          precio_unitario: number
-          product_id?: string | null
-          promotion_id?: string | null
-          qty: number
-        }
-        Update: {
-          codigo?: string
-          created_at?: string
-          id?: string
-          line_total?: number
-          nombre?: string
-          order_id?: string
-          precio_base?: number
-          precio_unitario?: number
-          product_id?: string | null
-          promotion_id?: string | null
-          qty?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "order_items_order_id_fkey"
-            columns: ["order_id"]
-            isOneToOne: false
-            referencedRelation: "orders"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "order_items_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "order_items_promotion_id_fkey"
-            columns: ["promotion_id"]
-            isOneToOne: false
-            referencedRelation: "promotions"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      orders: {
-        Row: {
-          access_token: string | null
-          confirmed_at: string | null
-          created_at: string
-          customer_name: string
-          customer_phone: string
-          id: string
-          notes: string | null
-          status: Database["public"]["Enums"]["order_status"]
-          total: number
-          updated_at: string
-        }
-        Insert: {
-          access_token?: string | null
-          confirmed_at?: string | null
-          created_at?: string
-          customer_name: string
-          customer_phone: string
-          id?: string
-          notes?: string | null
-          status?: Database["public"]["Enums"]["order_status"]
-          total?: number
-          updated_at?: string
-        }
-        Update: {
-          access_token?: string | null
-          confirmed_at?: string | null
-          created_at?: string
-          customer_name?: string
-          customer_phone?: string
-          id?: string
-          notes?: string | null
-          status?: Database["public"]["Enums"]["order_status"]
-          total?: number
-          updated_at?: string
-        }
-        Relationships: []
-      }
       products: {
         Row: {
           categoria: string
@@ -199,15 +96,88 @@ export type Database = {
           updated_at?: string
           valor?: number
         }
-        Relationships: [
-          {
-            foreignKeyName: "promotions_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: true
-            referencedRelation: "products"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
+      }
+      orders: {
+        Row: {
+          access_token: string | null
+          confirmed_at: string | null
+          created_at: string
+          customer_name: string
+          customer_phone: string
+          id: string
+          notes: string | null
+          status: Database["public"]["Enums"]["order_status"]
+          total: number
+          updated_at: string
+        }
+        Insert: {
+          access_token?: string | null
+          confirmed_at?: string | null
+          created_at?: string
+          customer_name: string
+          customer_phone: string
+          id?: string
+          notes?: string | null
+          status?: Database["public"]["Enums"]["order_status"]
+          total?: number
+          updated_at?: string
+        }
+        Update: {
+          access_token?: string | null
+          confirmed_at?: string | null
+          created_at?: string
+          customer_name?: string
+          customer_phone?: string
+          id?: string
+          notes?: string | null
+          status?: Database["public"]["Enums"]["order_status"]
+          total?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      order_items: {
+        Row: {
+          codigo: string
+          created_at: string
+          id: string
+          line_total: number
+          nombre: string
+          order_id: string
+          precio_base: number
+          precio_unitario: number
+          product_id: string | null
+          promotion_id: string | null
+          qty: number
+        }
+        Insert: {
+          codigo: string
+          created_at?: string
+          id?: string
+          line_total: number
+          nombre: string
+          order_id: string
+          precio_base: number
+          precio_unitario: number
+          product_id?: string | null
+          promotion_id?: string | null
+          qty: number
+        }
+        Update: {
+          codigo?: string
+          created_at?: string
+          id?: string
+          line_total?: number
+          nombre?: string
+          order_id?: string
+          precio_base?: number
+          precio_unitario?: number
+          product_id?: string | null
+          promotion_id?: string | null
+          qty?: number
+        }
+        Relationships: []
       }
       settings: {
         Row: {
@@ -263,10 +233,18 @@ export type Database = {
     }
     Functions: {
       cancel_order: {
-        Args: { p_order_id: string; p_restock: boolean }
+        Args: {
+          p_order_id: string
+          p_restock: boolean
+        }
         Returns: undefined
       }
-      confirm_order: { Args: { p_order_id: string }; Returns: undefined }
+      confirm_order: {
+        Args: {
+          p_order_id: string
+        }
+        Returns: undefined
+      }
       create_customer_order: {
         Args: {
           p_items: Json
@@ -276,9 +254,18 @@ export type Database = {
         }
         Returns: Json
       }
-      get_best_sellers: { Args: { p_limit?: number }; Returns: Json }
+      get_best_sellers: {
+        Args: {
+          p_limit: number
+        }
+        Returns: Json
+      }
       get_customer_order_history: {
-        Args: { p_name: string; p_phone: string; p_token: string }
+        Args: {
+          p_name: string
+          p_phone: string
+          p_token: string
+        }
         Returns: Json
       }
       has_role: {

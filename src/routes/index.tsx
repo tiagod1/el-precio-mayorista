@@ -1,17 +1,20 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useDeferredValue, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { Search, ShoppingCart, Minus, Plus, Trash2, PackageOpen, X, ImageOff, Lock, Check, Truck, MessageCircle, Boxes } from "lucide-react";
-import { toast } from "sonner";
+import { useDeferredValue, useMemo, useState } from "react";
+import { Search, ShoppingCart, PackageOpen, Lock, Truck, MessageCircle, Boxes, History } from "lucide-react";
 import { Brand } from "@/components/Brand";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { fetchAllProducts, fetchSettings, formatDate, isAvailable, normalizeText, photoSrc, type Product } from "@/lib/catalog";
+import { ProductCard } from "@/components/ProductCard";
+import { CartSheet } from "@/components/CartSheet";
+import { BestSellersSection, CigarettesSection, NewArrivalsSection, OffersSection, StoreNotices } from "@/components/catalog-sections";
+import { RepeatOrderDialog } from "@/components/RepeatOrder";
+import { fetchAllProducts, fetchSettings, formatDate, isAvailable, normalizeText, type Product } from "@/lib/catalog";
 import { useCart } from "@/lib/cart";
-import { useReveal } from "@/lib/reveal";
-import { buildWhatsAppMessage, formatARS, whatsappDigits } from "@/lib/import-rules";
+import { formatARS } from "@/lib/import-rules";
+import { activePromotionFor, fetchPromotions, priceCartItems, promoPrice, type Promotion } from "@/lib/promotions";
+import { fetchBestSellers } from "@/lib/orders";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -32,6 +35,8 @@ const PAGE = 48;
 function Catalog() {
   const products = useQuery({ queryKey: ["products"], queryFn: fetchAllProducts, staleTime: 60_000 });
   const settings = useQuery({ queryKey: ["settings"], queryFn: fetchSettings, staleTime: 60_000 });
+  const promotions = useQuery({ queryKey: ["promotions"], queryFn: fetchPromotions, staleTime: 60_000, retry: false });
+  const bestSellers = useQuery({ queryKey: ["best-sellers"], queryFn: () => fetchBestSellers(12), staleTime: 60_000, retry: false });
   const cart = useCart();
   const [q, setQ] = useState("");
   const dq = useDeferredValue(q);
@@ -40,6 +45,7 @@ function Catalog() {
   const [soloStock, setSoloStock] = useState(false);
   const [limit, setLimit] = useState(PAGE);
   const [cartOpen, setCartOpen] = useState(false);
+  const [repeatOpen, setRepeatOpen] = useState(false);
 
   const base = useMemo(() => {
     const all = (products.data ?? []).filter((p) => !p.oculto);
@@ -56,6 +62,13 @@ function Catalog() {
     enStock: base.filter(isAvailable).length,
     proveedores: new Set(base.map((p) => p.proveedor).filter(Boolean)).size,
   }), [base]);
+  const promoList = useMemo(() => promotions.data ?? [], [promotions.data]);
+  const promoFor = (p: Product): Promotion | undefined => {
+    const promo = activePromotionFor(p.id, promoList);
+    return promo && promoPrice(p.precio, promo) < p.precio ? promo : undefined;
+  };
+  const cartPriced = useMemo(() => priceCartItems(cart.items, base, promoList), [cart.items, base, promoList]);
+  const cartTotal = cartPriced.reduce((s, i) => s + i.qty * i.precioUnitario, 0);
 
   const filtered = useMemo(() => {
     const terms = normalizeText(dq).split(/\s+/).filter(Boolean);
@@ -126,6 +139,8 @@ function Catalog() {
             <Hero total={stats.total} enStock={stats.enStock} proveedores={stats.proveedores} actualizado={settings.data?.ultima_actualizacion ?? null} />
           )}
 
+          <div className="pt-3"><StoreNotices /></div>
+
           <nav aria-label="Categorías" className="no-scrollbar fade-edges -mx-4 flex gap-2 overflow-x-auto px-4 py-3">
             {["TODAS", ...categorias].map((c) => (
               <button
@@ -139,6 +154,9 @@ function Catalog() {
             ))}
           </nav>
           <div className="flex flex-wrap items-center gap-2 pb-3">
+            <Button variant="outline" className="h-10 rounded-xl" onClick={() => setRepeatOpen(true)}>
+              <History className="h-4 w-4" /> Repetir pedido
+            </Button>
             <Select value={prov} onValueChange={(v) => { setProv(v); setLimit(PAGE); }}>
               <SelectTrigger className="h-10 w-full rounded-xl bg-card sm:w-64" aria-label="Filtrar por proveedor"><SelectValue placeholder="Proveedor" /></SelectTrigger>
               <SelectContent>
@@ -159,7 +177,7 @@ function Catalog() {
             <div className="anim-fade-up py-16 text-center text-muted-foreground">No encontramos productos con esos filtros.</div>
           ) : (
             <ul className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 lg:grid-cols-4">
-              {filtered.slice(0, limit).map((p, i) => <ProductCard key={p.id} p={p} index={i % 4} />)}
+              {filtered.slice(0, limit).map((p, i) => <ProductCard key={p.id} p={p} index={i % 4} promo={promoFor(p)} />)}
             </ul>
           )}
           {filtered.length > limit && (
@@ -167,6 +185,13 @@ function Catalog() {
               <Button variant="outline" className="h-11 rounded-xl px-6" onClick={() => setLimit((l) => l + PAGE)}>Ver más productos</Button>
             </div>
           )}
+
+          <div className="mt-8 space-y-10">
+            <OffersSection products={base} promotions={promoList} />
+            <CigarettesSection products={base} promotions={promoList} />
+            <BestSellersSection sellers={bestSellers.data ?? []} products={base} promotions={promoList} />
+            <NewArrivalsSection products={base} promotions={promoList} />
+          </div>
         </main>
       )}
 
@@ -183,12 +208,13 @@ function Catalog() {
               </span>
               <span className="ml-1">Ver pedido</span>
             </span>
-            <span key={cart.total} className="anim-pop font-display font-black">{formatARS(cart.total)}</span>
+            <span key={cartTotal} className="anim-pop font-display font-black">{formatARS(cartTotal)}</span>
           </button>
         </div>
       )}
 
-      <CartSheet open={cartOpen} onOpenChange={setCartOpen} whatsapp={settings.data?.whatsapp ?? null} />
+      <RepeatOrderDialog open={repeatOpen} onOpenChange={setRepeatOpen} products={base} />
+      <CartSheet open={cartOpen} onOpenChange={setCartOpen} whatsapp={settings.data?.whatsapp ?? null} products={base} promotions={promoList} />
     </div>
   );
 }
@@ -269,153 +295,5 @@ function EmptyCatalog() {
         <Button asChild className="mt-4 w-full"><Link to="/admin">Ir a administración</Link></Button>
       </div>
     </main>
-  );
-}
-
-function ProductCard({ p, index }: { p: Product; index: number }) {
-  const cart = useCart();
-  const ref = useReveal<HTMLLIElement>();
-  const ok = isAvailable(p);
-  const inCart = cart.items.find((i) => i.codigo === p.codigo);
-  const src = photoSrc(p.foto_url);
-  const [added, setAdded] = useState(0);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
-
-  function add() {
-    cart.add({ codigo: p.codigo, nombre: p.nombre, precio: p.precio });
-    toast.success("Agregado al pedido");
-    setAdded((n) => n + 1);
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => setAdded(0), 900);
-  }
-
-  return (
-    <li ref={ref} className="reveal" style={{ "--i": index } as CSSProperties}>
-      <article className={`product-card flex h-full flex-col overflow-hidden rounded-xl border bg-card shadow-card ${inCart ? "border-primary/40" : ""}`}>
-        <div className="relative aspect-square overflow-hidden bg-muted">
-          {src ? (
-            <img src={src} alt={p.nombre} loading="lazy" decoding="async" className={`product-img h-full w-full object-contain p-2 ${ok ? "" : "opacity-60 grayscale"}`} />
-          ) : (
-            <div className="grid h-full place-items-center text-muted-foreground/50"><ImageOff className="h-8 w-8" aria-hidden /></div>
-          )}
-          <span className={`absolute left-2 top-2 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase shadow-sm ${ok ? "bg-success text-success-foreground" : "bg-destructive text-destructive-foreground"}`}>
-            {ok ? "En stock" : "Sin stock"}
-          </span>
-          {inCart && (
-            <span key={inCart.qty} className="anim-pop absolute right-2 top-2 grid h-6 min-w-6 place-items-center rounded-full bg-primary px-1.5 text-[11px] font-black text-primary-foreground shadow-sm" aria-label={`${inCart.qty} en el pedido`}>
-              {inCart.qty}
-            </span>
-          )}
-          {added > 0 && (
-            <span key={added} className="anim-check pointer-events-none absolute inset-0 grid place-items-center" aria-hidden>
-              <span className="grid h-14 w-14 place-items-center rounded-full bg-highlight text-highlight-foreground shadow-card-hover">
-                <Check className="h-7 w-7" strokeWidth={3} />
-              </span>
-            </span>
-          )}
-        </div>
-        <div className="flex flex-1 flex-col gap-1 p-2.5 sm:p-3">
-          <p className="truncate text-[11px] text-muted-foreground">Cód. {p.codigo}{p.proveedor ? ` · ${p.proveedor}` : ""}</p>
-          <h3 className="line-clamp-3 font-sans text-sm font-semibold leading-snug">{p.nombre}</h3>
-          <div className="mt-auto pt-1.5">
-            <span className="block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Precio unitario</span>
-            <p className="price-tag mt-0.5 inline-flex items-baseline rounded-md bg-highlight px-2 py-0.5 font-display text-lg font-black leading-tight text-highlight-foreground sm:text-xl">
-              {formatARS(p.precio)}
-            </p>
-          </div>
-          <div className="mt-1.5">
-            {inCart ? (
-              <div className="anim-pop"><QtyControl codigo={p.codigo} qty={inCart.qty} /></div>
-            ) : (
-              <Button
-                size="sm"
-                className="h-10 w-full rounded-lg transition-transform duration-150 active:scale-95"
-                disabled={!ok}
-                onClick={add}
-              >
-                {ok ? <><Plus className="h-4 w-4" /> Agregar</> : "No disponible"}
-              </Button>
-            )}
-          </div>
-        </div>
-      </article>
-    </li>
-  );
-}
-
-function QtyControl({ codigo, qty }: { codigo: string; qty: number }) {
-  const cart = useCart();
-  return (
-    <div className="flex h-10 items-center justify-between rounded-lg border bg-secondary">
-      <button className="grid h-full w-10 place-items-center rounded-l-lg transition-colors hover:bg-muted active:scale-90" onClick={() => cart.setQty(codigo, qty - 1)} aria-label="Restar uno"><Minus className="h-4 w-4" /></button>
-      <input
-        type="number" inputMode="numeric" min={0} value={qty}
-        onChange={(e) => cart.setQty(codigo, Math.max(0, parseInt(e.target.value || "0", 10)))}
-        className="no-spin w-12 bg-transparent text-center text-base font-bold outline-none"
-        aria-label="Cantidad"
-      />
-      <button className="grid h-full w-10 place-items-center rounded-r-lg transition-colors hover:bg-muted active:scale-90" onClick={() => cart.setQty(codigo, qty + 1)} aria-label="Sumar uno"><Plus className="h-4 w-4" /></button>
-    </div>
-  );
-}
-
-function CartSheet({ open, onOpenChange, whatsapp }: { open: boolean; onOpenChange: (o: boolean) => void; whatsapp: string | null }) {
-  const cart = useCart();
-  const phone = whatsappDigits(whatsapp);
-  function send() {
-    if (!phone) { toast.error("El número de WhatsApp todavía no fue configurado por el comercio."); return; }
-    const url = `https://wa.me/${phone}?text=${encodeURIComponent(buildWhatsAppMessage(cart.items))}`;
-    window.open(url, "_blank", "noopener");
-  }
-  return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
-        side="right"
-        className="flex w-full flex-col gap-0 p-0 [&>button:first-child]:text-primary-foreground [&>button:first-child]:opacity-90 ease-[cubic-bezier(0.22,0.8,0.24,1)] data-[state=closed]:duration-200 data-[state=open]:duration-300 sm:max-w-md"
-      >
-        <SheetHeader className="border-b bg-header p-4 text-primary-foreground">
-          <SheetTitle className="flex items-center gap-2 text-primary-foreground">
-            <ShoppingCart className="h-5 w-5 text-highlight" /> Tu pedido
-            {cart.count > 0 && <span className="rounded-full bg-highlight px-2 py-0.5 text-xs font-black text-highlight-foreground">{cart.count} u.</span>}
-          </SheetTitle>
-        </SheetHeader>
-        {cart.items.length === 0 ? (
-          <div className="grid flex-1 place-items-center p-6 text-center text-muted-foreground">
-            <div className="anim-fade-up">
-              <ShoppingCart className="mx-auto h-10 w-10 opacity-30" />
-              <p className="mt-3">Todavía no agregaste productos.</p>
-            </div>
-          </div>
-        ) : (
-          <ul className="flex-1 divide-y overflow-y-auto overscroll-contain">
-            {cart.items.map((it, i) => (
-              <li key={it.codigo} className="anim-fade-up flex gap-3 p-4" style={{ "--i": Math.min(i, 8) } as CSSProperties}>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold leading-snug">{it.nombre}</p>
-                  <p className="text-xs text-muted-foreground">Cód. {it.codigo} · {formatARS(it.precio)} c/u</p>
-                  <div className="mt-2 w-36"><QtyControl codigo={it.codigo} qty={it.qty} /></div>
-                </div>
-                <div className="flex flex-col items-end justify-between">
-                  <button onClick={() => cart.remove(it.codigo)} className="rounded p-1.5 text-muted-foreground transition-colors hover:text-destructive" aria-label={`Quitar ${it.nombre}`}><Trash2 className="h-4 w-4" /></button>
-                  <p key={it.qty} className="anim-pop font-bold">{formatARS(it.precio * it.qty)}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-        <div className="space-y-3 border-t bg-card p-4 pb-safe">
-          <div className="flex justify-between text-sm"><span>Subtotal ({cart.count} u.)</span><span>{formatARS(cart.total)}</span></div>
-          <div className="flex justify-between text-lg font-black"><span>Total estimado</span><span key={cart.total} className="anim-pop text-primary">{formatARS(cart.total)}</span></div>
-          <p className="text-xs text-muted-foreground">Precios sujetos a confirmación por el comercio.</p>
-          <Button variant="whatsapp" className="h-12 w-full rounded-xl text-base transition-transform active:scale-[0.98]" disabled={cart.items.length === 0} onClick={send}>
-            <MessageCircle className="h-5 w-5" /> Enviar pedido por WhatsApp
-          </Button>
-          {cart.items.length > 0 && (
-            <button onClick={() => cart.clear()} className="flex w-full items-center justify-center gap-1 py-1 text-xs text-muted-foreground hover:text-destructive"><X className="h-3 w-3" /> Vaciar pedido</button>
-          )}
-        </div>
-      </SheetContent>
-    </Sheet>
   );
 }

@@ -11,6 +11,7 @@ export type Product = {
   sin_stock_manual: boolean;
   oculto: boolean;
   foto_url: string | null;
+  created_at: string;
 };
 
 export type Settings = {
@@ -21,7 +22,7 @@ export type Settings = {
   familias_excluidas: string[];
 };
 
-const COLS = "id,codigo,nombre,categoria,proveedor,precio,stock,sin_stock_manual,oculto,foto_url";
+const COLS = "id,codigo,nombre,categoria,proveedor,precio,stock,sin_stock_manual,oculto,foto_url,created_at";
 
 export async function fetchAllProducts(): Promise<Product[]> {
   const page = 1000;
@@ -55,6 +56,25 @@ export const photoSrc = (path: string | null) => (path ? `/api/public/foto/${pat
 
 export function normalizeText(s: string) {
   return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+}
+
+const BRAND_SKIP = new Set([
+  "TABACO", "CIGARRILLO", "CIGARRILLOS", "CIGARRO", "CIGARROS", "PAPAS", "GASEOSA", "AGUA", "JUGO",
+  "CERVEZA", "VINO", "ALCOHOL", "SIN", "CON", "DE", "DEL", "LA", "EL", "LOS", "LAS", "UNIDAD", "PACK",
+]);
+
+export function productBrand(p: Pick<Product, "nombre" | "proveedor">) {
+  const clean = p.nombre
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9& ]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const token = clean
+    .split(" ")
+    .find((t) => t && !BRAND_SKIP.has(t) && !/^\d/.test(t) && !/^X\d/i.test(t));
+  return token || p.proveedor || "Sin marca";
 }
 
 export function formatDate(iso: string | null) {
