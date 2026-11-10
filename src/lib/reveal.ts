@@ -10,7 +10,7 @@ function getObserver() {
     (entries) => {
       for (const e of entries) {
         if (e.isIntersecting) {
-          (e.target as HTMLElement).dataset.visible = "true";
+          (e.target as HTMLElement).dataset["visible"] = "true";
           observer?.unobserve(e.target);
         }
       }
@@ -28,7 +28,7 @@ export function useReveal<T extends HTMLElement>() {
     if (!el) return;
     const obs = getObserver();
     if (!obs) {
-      el.dataset.visible = "true";
+      el.dataset["visible"] = "true";
       return;
     }
     obs.observe(el);
