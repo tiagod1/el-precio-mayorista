@@ -12,7 +12,7 @@ describe("datos obligatorios del pedido", () => {
   it("asocia los cuatro campos distintos al pedido y mantiene cantidades y total", () => {
     const order = prepareCustomerOrder(customer, items);
     expect(order.customer).toEqual(customer);
-    expect(order.items[0].qty).toBe(2);
+    expect(order.items[0]?.qty).toBe(2);
     expect(order.total).toBe(200);
     for (const value of Object.values(customer)) expect(order.message).toContain(value);
   });

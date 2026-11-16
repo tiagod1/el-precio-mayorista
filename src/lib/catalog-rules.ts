@@ -18,6 +18,6 @@ export function customerCategory(product: CatalogIdentity): string {
   return families?.includes(family) ? "Cigarrillos" : product.categoria;
 }
 
-export function isCashOnly(product: { proveedor?: string | null }): boolean {
+export function isCashOnly(product: { proveedor?: string | null | undefined }): boolean {
   return normalizeKey(product.proveedor ?? "") === "massalin particulares s.r.l";
 }
