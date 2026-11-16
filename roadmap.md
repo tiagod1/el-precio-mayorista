@@ -1,4 +1,7 @@
 # Tareas
+- [ ] Incorporar cuatro datos obligatorios al pedido actual por WhatsApp.
+- [ ] Unificar visualmente cigarrillos y aplicar aviso exclusivo para Massalin.
+- [ ] Verificar datos reales, pruebas y flujo móvil/escritorio sin publicar.
 - [x] Guardar exclusiones: Jumbo Pack, concepto nota de crédito, consumo y empaque.
 - [x] Importar el Excel recibido y verificar los productos en el catálogo.
 - [x] Verificar exclusión de servicios de telefonía móvil: los cuatro registros pertenecen a consumo y están ocultos.

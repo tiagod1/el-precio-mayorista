@@ -5,6 +5,7 @@ export type Product = {
   codigo: string;
   nombre: string;
   categoria: string;
+  familia?: string | null;
   proveedor: string | null;
   precio: number;
   stock: number;
@@ -21,7 +22,7 @@ export type Settings = {
   familias_excluidas: string[];
 };
 
-const COLS = "id,codigo,nombre,categoria,proveedor,precio,stock,sin_stock_manual,oculto,foto_url";
+const COLS = "id,codigo,nombre,categoria,familia,proveedor,precio,stock,sin_stock_manual,oculto,foto_url";
 
 export async function fetchAllProducts(): Promise<Product[]> {
   const page = 1000;
