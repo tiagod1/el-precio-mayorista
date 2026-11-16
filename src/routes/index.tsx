@@ -6,12 +6,15 @@ import { toast } from "sonner";
 import { Brand } from "@/components/Brand";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { fetchAllProducts, fetchSettings, formatDate, isAvailable, normalizeText, photoSrc, type Product } from "@/lib/catalog";
 import { useCart } from "@/lib/cart";
 import { useReveal } from "@/lib/reveal";
-import { buildWhatsAppMessage, formatARS, whatsappDigits } from "@/lib/import-rules";
+import { formatARS, whatsappDigits } from "@/lib/import-rules";
+import { customerCategory, isCashOnly } from "@/lib/catalog-rules";
+import { customerSchema, emptyCustomer, prepareCustomerOrder, type CustomerData } from "@/lib/checkout";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -46,9 +49,9 @@ function Catalog() {
     return settings.data?.ocultar_sin_stock ? all.filter(isAvailable) : all;
   }, [products.data, settings.data]);
 
-  const categorias = useMemo(() => [...new Set(base.map((p) => p.categoria))].sort(), [base]);
+  const categorias = useMemo(() => [...new Set(base.map(customerCategory))].sort(), [base]);
   const proveedores = useMemo(
-    () => [...new Set(base.filter((p) => cat === "TODAS" || p.categoria === cat).map((p) => p.proveedor).filter(Boolean) as string[])].sort(),
+    () => [...new Set(base.filter((p) => cat === "TODAS" || customerCategory(p) === cat).map((p) => p.proveedor).filter(Boolean) as string[])].sort(),
     [base, cat],
   );
   const stats = useMemo(() => ({
@@ -60,15 +63,15 @@ function Catalog() {
   const filtered = useMemo(() => {
     const terms = normalizeText(dq).split(/\s+/).filter(Boolean);
     return base.filter((p) => {
-      if (cat !== "TODAS" && p.categoria !== cat) return false;
-      if (prov !== "TODOS" && p.proveedor !== prov) return false;
+      if (cat !== "TODAS" && customerCategory(p) !== cat) return false;
+      if (cat !== "Cigarrillos" && prov !== "TODOS" && p.proveedor !== prov) return false;
       if (soloStock && !isAvailable(p)) return false;
       if (terms.length) {
         const hay = normalizeText(`${p.nombre} ${p.codigo} ${p.proveedor ?? ""}`);
         return terms.every((t) => hay.includes(t));
       }
       return true;
-    }).sort((a, b) => (a.proveedor ?? "~").localeCompare(b.proveedor ?? "~", "es") || a.nombre.localeCompare(b.nombre, "es"));
+    }).sort((a, b) => (cat === "Cigarrillos" ? 0 : (a.proveedor ?? "~").localeCompare(b.proveedor ?? "~", "es")) || a.nombre.localeCompare(b.nombre, "es"));
   }, [base, dq, cat, prov, soloStock]);
 
   const loading = products.isLoading || settings.isLoading;
@@ -128,24 +131,24 @@ function Catalog() {
 
           <nav aria-label="Categorías" className="no-scrollbar fade-edges -mx-4 flex gap-2 overflow-x-auto px-4 py-3">
             {["TODAS", ...categorias].map((c) => (
-              <button
+              <Button
                 key={c}
                 onClick={() => { setCat(c); setProv("TODOS"); setLimit(PAGE); }}
                 className={`shrink-0 rounded-full border px-3.5 py-2 text-xs font-semibold transition-[background-color,color,border-color,transform] duration-200 active:scale-95 ${cat === c ? "border-primary bg-primary text-primary-foreground shadow-sm" : "bg-card text-foreground hover:border-primary/40 hover:bg-secondary"}`}
                 aria-pressed={cat === c}
               >
                 {c === "TODAS" ? "Todas" : c}
-              </button>
+              </Button>
             ))}
           </nav>
           <div className="flex flex-wrap items-center gap-2 pb-3">
-            <Select value={prov} onValueChange={(v) => { setProv(v); setLimit(PAGE); }}>
+            {cat !== "Cigarrillos" && <Select value={prov} onValueChange={(v) => { setProv(v); setLimit(PAGE); }}>
               <SelectTrigger className="h-10 w-full rounded-xl bg-card sm:w-64" aria-label="Filtrar por proveedor"><SelectValue placeholder="Proveedor" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="TODOS">Todos los proveedores</SelectItem>
                 {proveedores.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
               </SelectContent>
-            </Select>
+            </Select>}
             <label className={`flex h-10 cursor-pointer items-center gap-2 rounded-xl border px-3 text-sm font-medium transition-colors ${soloStock ? "border-success/50 bg-success/10" : "bg-card"}`}>
               <input type="checkbox" checked={soloStock} onChange={(e) => setSoloStock(e.target.checked)} className="h-4 w-4 accent-primary" />
               Solo con stock
@@ -188,7 +191,7 @@ function Catalog() {
         </div>
       )}
 
-      <CartSheet open={cartOpen} onOpenChange={setCartOpen} whatsapp={settings.data?.whatsapp ?? null} />
+       <CartSheet open={cartOpen} onOpenChange={setCartOpen} whatsapp={settings.data?.whatsapp ?? null} products={products.data ?? []} />
     </div>
   );
 }
@@ -318,6 +321,7 @@ function ProductCard({ p, index }: { p: Product; index: number }) {
         <div className="flex flex-1 flex-col gap-1 p-2.5 sm:p-3">
           <p className="truncate text-[11px] text-muted-foreground">Cód. {p.codigo}{p.proveedor ? ` · ${p.proveedor}` : ""}</p>
           <h3 className="line-clamp-3 font-sans text-sm font-semibold leading-snug">{p.nombre}</h3>
+          {isCashOnly(p) && <p className="mt-1 text-xs font-bold text-primary">SOLO EFECTIVO</p>}
           <div className="mt-auto pt-1.5">
             <span className="block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Precio unitario</span>
             <p className="price-tag mt-0.5 inline-flex items-baseline rounded-md bg-highlight px-2 py-0.5 font-display text-lg font-black leading-tight text-highlight-foreground sm:text-xl">
@@ -360,12 +364,37 @@ function QtyControl({ codigo, qty }: { codigo: string; qty: number }) {
   );
 }
 
-function CartSheet({ open, onOpenChange, whatsapp }: { open: boolean; onOpenChange: (o: boolean) => void; whatsapp: string | null }) {
+function CartSheet({ open, onOpenChange, whatsapp, products }: { open: boolean; onOpenChange: (o: boolean) => void; whatsapp: string | null; products: Product[] }) {
   const cart = useCart();
   const phone = whatsappDigits(whatsapp);
+  const [customer, setCustomer] = useState<CustomerData>({ ...emptyCustomer });
+  const [attempted, setAttempted] = useState(false);
+  const validation = customerSchema.safeParse(customer);
+  const errors = validation.success ? {} : validation.error.flatten().fieldErrors;
+  const productByCode = useMemo(() => new Map(products.map((product) => [product.codigo, product])), [products]);
+  const fields = [
+    { key: "customerNumber", label: "Número de cliente", autoComplete: "off", maxLength: 50 },
+    { key: "fullName", label: "Nombre y apellido", autoComplete: "name", maxLength: 150 },
+    { key: "phone", label: "Número de teléfono", autoComplete: "tel", maxLength: 30 },
+    { key: "deliveryAddress", label: "Dirección de entrega", autoComplete: "street-address", maxLength: 300 },
+  ] as const;
   function send() {
-    if (!phone) { toast.error("El número de WhatsApp todavía no fue configurado por el comercio."); return; }
-    const url = `https://wa.me/${phone}?text=${encodeURIComponent(buildWhatsAppMessage(cart.items))}`;
+    setAttempted(true);
+    if (!validation.success) {
+      document.getElementById(`checkout-${validation.error.issues[0]?.path[0]}`)?.focus();
+      return;
+    }
+    if (!/^\d{10,15}$/.test(phone)) { toast.error("El número de WhatsApp todavía no fue configurado correctamente por el comercio."); return; }
+    let order;
+    try {
+      order = prepareCustomerOrder(customer, cart.items.map((item) => ({ ...item, proveedor: productByCode.get(item.codigo)?.proveedor ?? null })));
+    } catch {
+      toast.error("Revisá los datos y las cantidades del pedido.");
+      return;
+    }
+    // Associate the four fields with the generated order, without changing the database.
+    try { sessionStorage.setItem("epm-ultimo-pedido-v1", JSON.stringify(order)); } catch {}
+    const url = `https://wa.me/${phone}?text=${encodeURIComponent(order.message)}`;
     window.open(url, "_blank", "noopener");
   }
   return (
@@ -388,12 +417,24 @@ function CartSheet({ open, onOpenChange, whatsapp }: { open: boolean; onOpenChan
             </div>
           </div>
         ) : (
-          <ul className="flex-1 divide-y overflow-y-auto overscroll-contain">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+          <form id="customer-order" noValidate onSubmit={(event) => { event.preventDefault(); send(); }} className="grid gap-3 border-b p-4">
+            <h2 className="font-bold">Datos del cliente</h2>
+            {fields.map((field) => (
+              <div key={field.key} className="space-y-1.5">
+                <Label htmlFor={`checkout-${field.key}`}>{field.label} <span aria-hidden>*</span></Label>
+                <Input id={`checkout-${field.key}`} name={field.key} required type={field.key === "phone" ? "tel" : "text"} autoComplete={field.autoComplete} maxLength={field.maxLength} value={customer[field.key]} onChange={(event) => setCustomer((previous) => ({ ...previous, [field.key]: event.target.value }))} aria-invalid={attempted && !!errors[field.key]} aria-describedby={attempted && errors[field.key] ? `checkout-error-${field.key}` : undefined} />
+                {attempted && errors[field.key] && <p id={`checkout-error-${field.key}`} role="alert" className="text-xs text-destructive">{errors[field.key]?.[0]}</p>}
+              </div>
+            ))}
+          </form>
+          <ul className="divide-y">
             {cart.items.map((it, i) => (
               <li key={it.codigo} className="anim-fade-up flex gap-3 p-4" style={{ "--i": Math.min(i, 8) } as CSSProperties}>
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold leading-snug">{it.nombre}</p>
                   <p className="text-xs text-muted-foreground">Cód. {it.codigo} · {formatARS(it.precio)} c/u</p>
+                   {isCashOnly(productByCode.get(it.codigo) ?? {}) && <p className="mt-1 text-xs font-bold text-primary">SOLO EFECTIVO</p>}
                   <div className="mt-2 w-36"><QtyControl codigo={it.codigo} qty={it.qty} /></div>
                 </div>
                 <div className="flex flex-col items-end justify-between">
@@ -403,12 +444,13 @@ function CartSheet({ open, onOpenChange, whatsapp }: { open: boolean; onOpenChan
               </li>
             ))}
           </ul>
+          </div>
         )}
         <div className="space-y-3 border-t bg-card p-4 pb-safe">
           <div className="flex justify-between text-sm"><span>Subtotal ({cart.count} u.)</span><span>{formatARS(cart.total)}</span></div>
           <div className="flex justify-between text-lg font-black"><span>Total estimado</span><span key={cart.total} className="anim-pop text-primary">{formatARS(cart.total)}</span></div>
           <p className="text-xs text-muted-foreground">Precios sujetos a confirmación por el comercio.</p>
-          <Button variant="whatsapp" className="h-12 w-full rounded-xl text-base transition-transform active:scale-[0.98]" disabled={cart.items.length === 0} onClick={send}>
+          <Button type="submit" form="customer-order" variant="whatsapp" className="h-12 w-full rounded-xl text-base transition-transform active:scale-[0.98]" disabled={cart.items.length === 0}>
             <MessageCircle className="h-5 w-5" /> Enviar pedido por WhatsApp
           </Button>
           {cart.items.length > 0 && (
