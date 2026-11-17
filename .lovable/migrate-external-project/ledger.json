@@ -1,0 +1,14 @@
+{
+  "scope": "Merge capability files from the same project's code archive; retain the current Cloud instance, identities, records, storage and security fixes.",
+  "capabilities": [
+    {"capability":"catalog and code", "source":"integracion-devin ZIP and current project", "outcome":"merge", "status":"in_progress", "next_action":"Preserve current catalog and integrate missing capabilities"},
+    {"capability":"schema and records", "source":"existing Lovable Cloud", "outcome":"retain", "status":"in_progress", "next_action":"Add order metadata and idempotency without replacing data"},
+    {"capability":"auth identities and authorization", "source":"existing Cloud", "outcome":"retain", "status":"preserved", "next_action":"Verify authenticated admin"},
+    {"capability":"uploaded file bytes", "source":"private product-photos bucket", "outcome":"retain", "status":"preserved", "next_action":"Preserve existing photo proxy and signed admin previews"},
+    {"capability":"orders, history, promotions and statistics", "source":"ZIP", "outcome":"repair and integrate", "status":"in_progress", "next_action":"Verify create/read/confirm/cancel and promotions"},
+    {"capability":"Mercado Pago", "source":"ZIP informational notice", "outcome":"configurable discount only", "status":"in_progress", "next_action":"Do not simulate payments or invent credentials"},
+    {"capability":"public endpoints, callbacks, schedules and secrets", "source":"current project", "outcome":"retain", "status":"preserved", "next_action":"No changes to unrelated integrations"},
+    {"capability":"cutover", "source":"user instruction", "outcome":"do not publish", "status":"preserved", "next_action":"User review only"},
+    {"capability":"verification", "source":"tests and browser", "outcome":"verify", "status":"pending", "next_action":"Exercise real Cloud flow and clean up verification records"}
+  ]
+}

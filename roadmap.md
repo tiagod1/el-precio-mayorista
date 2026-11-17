@@ -1,4 +1,9 @@
 # Tareas
+- [ ] Integrar del ZIP pedidos, historial, promociones y estadísticas sin reemplazar catálogo ni controles de seguridad.
+- [ ] Registrar los cuatro datos y precios reales; impedir WhatsApp ante error y duplicados al reintentar.
+- [ ] Reparar estadísticas confirmadas, fechas, paginación y actualización tras cambios.
+- [ ] Configurar descuento de Mercado Pago sin simular cobros.
+- [ ] Verificar vista móvil/escritorio, administración y un pedido real de prueba; no publicar.
 - [x] Incorporar cuatro datos obligatorios al pedido actual por WhatsApp.
 - [x] Unificar visualmente cigarrillos y aplicar aviso exclusivo para Massalin.
 - [x] Verificar datos reales, pruebas y flujo móvil/escritorio sin publicar.
