@@ -12,7 +12,7 @@ import { Route } from "@/routes/api/public/foto.$";
 
 const get = (Route as unknown as { server: { handlers: { GET: (arg: { params: { _splat: string } }) => Promise<Response> } } }).server.handlers.GET;
 describe("private product photo access", () => {
-  beforeEach(() => { vi.clearAllMocks(); process.env.SUPABASE_PUBLISHABLE_KEY = "sb_publishable_test"; });
+  beforeEach(() => { vi.clearAllMocks(); process.env["SUPABASE_PUBLISHABLE_KEY"] = "sb_publishable_test"; });
   it("rejects traversal without touching storage", async () => {
     expect((await get({ params: { _splat: "../private.jpg" } })).status).toBe(400);
     expect(mocks.lookup).not.toHaveBeenCalled();
