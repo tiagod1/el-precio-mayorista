@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { fetchAllProducts, fetchSettings, formatDate, isAvailable, normalizeText, photoSrc, type Product } from "@/lib/catalog";
+import { fetchAllProducts, fetchCatalogSettings, formatDate, isAvailable, normalizeText, photoSrc, type Product } from "@/lib/catalog";
 import { useCart } from "@/lib/cart";
 import { useReveal } from "@/lib/reveal";
 import { formatARS, whatsappDigits } from "@/lib/import-rules";
@@ -34,7 +34,7 @@ const PAGE = 48;
 
 function Catalog() {
   const products = useQuery({ queryKey: ["products"], queryFn: fetchAllProducts, staleTime: 60_000 });
-  const settings = useQuery({ queryKey: ["settings"], queryFn: fetchSettings, staleTime: 60_000 });
+  const settings = useQuery({ queryKey: ["catalog-settings"], queryFn: fetchCatalogSettings, staleTime: 60_000 });
   const cart = useCart();
   const [q, setQ] = useState("");
   const dq = useDeferredValue(q);

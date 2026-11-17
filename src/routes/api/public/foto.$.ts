@@ -22,12 +22,18 @@ export const Route = createFileRoute("/api/public/foto/$")({
             },
           },
         });
-        const { data, error } = await client.storage.from("product-photos").download(path);
+        // Authorize the exact object against the public catalog before using
+        // privileged storage access. Hidden/unassociated files stay private.
+        const { data: product, error: productError } = await client.from("products")
+          .select("id").eq("foto_url", path).eq("oculto", false).limit(1).maybeSingle();
+        if (productError || !product) return new Response("No encontrada", { status: 404 });
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        const { data, error } = await supabaseAdmin.storage.from("product-photos").download(path);
         if (error || !data) return new Response("No encontrada", { status: 404 });
         return new Response(data, {
           headers: {
             "content-type": data.type || "image/jpeg",
-            "cache-control": "public, max-age=86400, immutable",
+            "cache-control": "no-store",
           },
         });
       },

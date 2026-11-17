@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
-import { fetchAllProducts, fetchSettings, formatDate, isAvailable, normalizeText, photoSrc, type Product } from "@/lib/catalog";
+import { fetchAllProducts, fetchSettings, formatDate, isAvailable, normalizeText, type Product } from "@/lib/catalog";
 import { findMissingColumns, formatARS, processRows, REQUIRED_COLUMNS, type ImportResult } from "@/lib/import-rules";
 
 export const Route = createFileRoute("/_authenticated/admin")({
@@ -268,6 +268,7 @@ function SettingsSection({ s }: { s: { whatsapp: string | null; ocultar_sin_stoc
     if (error) { toast.error(`No se pudo guardar: ${error.message}`); return; }
     toast.success("Configuración guardada");
     qc.invalidateQueries({ queryKey: ["settings"] });
+    qc.invalidateQueries({ queryKey: ["catalog-settings"] });
   }
 
   return (
@@ -318,6 +319,17 @@ function ProductsSection({ products }: { products: Product[] }) {
 function AdminRow({ p }: { p: Product }) {
   const qc = useQueryClient();
   const [busy, setBusy] = useState(false);
+  const photo = useQuery({
+    queryKey: ["admin-photo", p.foto_url],
+    enabled: !!p.foto_url,
+    staleTime: 30_000,
+    refetchInterval: 45_000,
+    queryFn: async () => {
+      const { data, error } = await supabase.storage.from("product-photos").createSignedUrl(p.foto_url!, 60);
+      if (error) throw error;
+      return data.signedUrl;
+    },
+  });
 
   async function update(patch: Partial<Product>) {
     setBusy(true);
@@ -349,7 +361,7 @@ function AdminRow({ p }: { p: Product }) {
     toast.success("Foto eliminada");
   }
 
-  const src = photoSrc(p.foto_url);
+  const src = photo.data;
   return (
     <li className="flex flex-wrap items-center gap-3 py-3">
       <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg border bg-muted">

@@ -277,6 +277,7 @@ export type Database = {
         Returns: Json
       }
       get_best_sellers: { Args: { p_limit?: number }; Returns: Json }
+      get_catalog_settings: { Args: never; Returns: Json }
       get_customer_order_history: {
         Args: { p_name: string; p_phone: string; p_token: string }
         Returns: Json
