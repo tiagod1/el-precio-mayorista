@@ -50,6 +50,12 @@ export async function fetchSettings(): Promise<Settings> {
   return data as Settings;
 }
 
+export async function fetchCatalogSettings() {
+  const { data, error } = await supabase.rpc("get_catalog_settings");
+  if (error) throw error;
+  return data as { whatsapp: string | null; ocultar_sin_stock: boolean; ultima_actualizacion: string | null };
+}
+
 export const isAvailable = (p: Product) => !p.sin_stock_manual && p.stock > 0;
 
 export const photoSrc = (path: string | null) => (path ? `/api/public/foto/${path}` : null);
