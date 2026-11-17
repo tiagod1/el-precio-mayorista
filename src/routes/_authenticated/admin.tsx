@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
-import { fetchAllProducts, fetchSettings, formatDate, isAvailable, normalizeText, photoSrc, type Product } from "@/lib/catalog";
+import { fetchAllProducts, fetchSettings, formatDate, isAvailable, normalizeText, type Product } from "@/lib/catalog";
 import { findMissingColumns, formatARS, processRows, REQUIRED_COLUMNS, type ImportResult } from "@/lib/import-rules";
 
 export const Route = createFileRoute("/_authenticated/admin")({
