@@ -151,12 +151,19 @@ export type PromoImportResult = {
 export function findMissingPromoColumns(headers: string[]): string[] {
   const have = new Set(headers.map((h) => normalizeKey(String(h ?? ""))));
   const groups = [PROMO_CODIGO_ALIASES, PROMO_TIPO_ALIASES, PROMO_VALOR_ALIASES];
-  return PROMO_REQUIRED_COLUMNS.filter((_, i) => !groups[i]!.some((a) => have.has(normalizeKey(a))));
+  const missing = PROMO_REQUIRED_COLUMNS.filter((_, i) => !groups[i]!.some((a) => have.has(normalizeKey(a))));
+  const hasAlt = [...PROMO_PCT_ALIASES, ...PROMO_FINAL_ALIASES].some((a) => have.has(normalizeKey(a)));
+  // Con PORCENTAJE o PRECIO FINAL no hace falta la columna Tipo.
+  return hasAlt ? missing.filter((m) => m === "Codigo") : missing;
 }
 
 const PROMO_CODIGO_ALIASES = ["codigo", "cod", "codigo producto", "codigo de producto"];
 const PROMO_TIPO_ALIASES = ["tipo", "modalidad", "tipo de oferta", "tipo de promocion", "tipo promo", "tipo de descuento"];
 const PROMO_VALOR_ALIASES = ["valor", "monto", "precio", "precio promocional", "descuento", "valor promo", "porcentaje", "dto"];
+// Formatos alternativos sin columna Tipo: PORCENTAJE en decimal (-0,08 = 8%)
+// o PRECIO FINAL como precio promocional fijo.
+const PROMO_PCT_ALIASES = ["porcentaje", "porcentaje descuento", "%", "dto %"];
+const PROMO_FINAL_ALIASES = ["precio final", "precio promocional", "precio promo", "precio oferta"];
 
 function promoCell(r: Record<string, unknown>, aliases: string[]): unknown {
   for (const alias of aliases) {
@@ -191,21 +198,45 @@ export function processPromoRows(
     const codigo = String(promoCell(r, PROMO_CODIGO_ALIASES) ?? "").trim();
     const tipoRaw = promoCell(r, PROMO_TIPO_ALIASES);
     const valorRaw = promoCell(r, PROMO_VALOR_ALIASES);
-    if (!codigo && (tipoRaw === undefined || tipoRaw === "") && (valorRaw === undefined || valorRaw === "")) return;
+    const pctRaw = promoCell(r, PROMO_PCT_ALIASES);
+    const finalRaw = promoCell(r, PROMO_FINAL_ALIASES);
+    const hasTipo = tipoRaw !== undefined && tipoRaw !== "";
+    const hasPct = pctRaw !== undefined && pctRaw !== "";
+    const hasFinal = finalRaw !== undefined && finalRaw !== "";
+    if (!codigo && !hasTipo && (valorRaw === undefined || valorRaw === "") && !hasPct && !hasFinal) return;
     if (!codigo) return void errors.push({ fila, motivo: "Falta el código" });
     if (!existingCodes.has(codigo)) return void errors.push({ fila, motivo: `Código ${codigo} no existe en el catálogo` });
 
-    const tipo = normalizePromoTipo(tipoRaw);
-    if (!tipo) return void errors.push({ fila, motivo: `Código ${codigo}: tipo inválido (usá Fijo o Porcentaje)` });
-
-    const valor = parseNumber(valorRaw);
-    if (valor === null || valor < 0) return void errors.push({ fila, motivo: `Código ${codigo}: valor inválido` });
-    if (tipo === "porcentaje" && (valor <= 0 || valor >= 100)) {
-      return void errors.push({ fila, motivo: `Código ${codigo}: el porcentaje debe ser mayor a 0 y menor a 100` });
+    let tipo: PromoImportTipo | null;
+    let valor: number | null;
+    if (hasTipo) {
+      tipo = normalizePromoTipo(tipoRaw);
+      if (!tipo) return void errors.push({ fila, motivo: `Código ${codigo}: tipo inválido (usá Fijo o Porcentaje, o una columna PORCENTAJE/PRECIO FINAL)` });
+      valor = parseNumber(valorRaw);
+      if (valor === null || valor < 0) return void errors.push({ fila, motivo: `Código ${codigo}: valor inválido` });
+      if (tipo === "porcentaje" && (valor <= 0 || valor >= 100)) {
+        return void errors.push({ fila, motivo: `Código ${codigo}: el porcentaje debe ser mayor a 0 y menor a 100` });
+      }
+      if (tipo === "precio_fijo" && valor === 0) {
+        return void errors.push({ fila, motivo: `Código ${codigo}: el precio promocional debe ser mayor a 0` });
+      }
+    } else if (hasPct) {
+      // PORCENTAJE llega como decimal con signo (-0,08 = 8%); también acepta 8 o 8%.
+      const raw = parseNumber(pctRaw);
+      if (raw === null) return void errors.push({ fila, motivo: `Código ${codigo}: porcentaje inválido` });
+      tipo = "porcentaje";
+      valor = Math.abs(raw) <= 1 ? Math.round(Math.abs(raw) * 10000) / 100 : Math.abs(raw);
+      if (valor <= 0 || valor >= 100) {
+        return void errors.push({ fila, motivo: `Código ${codigo}: el porcentaje debe ser mayor a 0 y menor a 100` });
+      }
+    } else if (hasFinal) {
+      tipo = "precio_fijo";
+      valor = parseNumber(finalRaw);
+      if (valor === null || valor <= 0) return void errors.push({ fila, motivo: `Código ${codigo}: precio final inválido` });
+    } else {
+      return void errors.push({ fila, motivo: `Código ${codigo}: falta el tipo de oferta (usá Fijo/Porcentaje o una columna PORCENTAJE/PRECIO FINAL)` });
     }
-    if (tipo === "precio_fijo" && valor === 0) {
-      return void errors.push({ fila, motivo: `Código ${codigo}: el precio promocional debe ser mayor a 0` });
-    }
+    valor = Math.round(valor * 100) / 100;
 
     if (byCode.has(codigo)) {
       warnings.push({ fila, motivo: `Código ${codigo} repetido: se usa la última aparición` });

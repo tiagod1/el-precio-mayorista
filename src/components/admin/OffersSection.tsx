@@ -256,7 +256,7 @@ export function OffersSection({ products }: { products: Product[] }) {
           <h3 className="font-bold">Importar Excel de ofertas</h3>
         </div>
         <p className="mt-1 text-xs text-muted-foreground">
-          Columnas: <strong>Codigo</strong>, <strong>Tipo</strong> (Fijo o Porcentaje) y <strong>Valor</strong>. También acepta Modalidad/Monto como alias.
+          Columnas: <strong>Codigo</strong>, <strong>Tipo</strong> (Fijo o Porcentaje) y <strong>Valor</strong>. También acepta Modalidad/Monto como alias, o directamente <strong>PORCENTAJE</strong> (-0,08 = 8%) / <strong>PRECIO FINAL</strong> sin columna Tipo.
         </p>
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border bg-card px-3 py-2 text-sm font-semibold hover:bg-secondary">

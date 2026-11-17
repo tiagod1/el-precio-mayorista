@@ -86,6 +86,29 @@ describe("importación de promociones", () => {
     expect(r.errors).toHaveLength(5);
   });
 
+  it("acepta porcentaje en decimal negativo y precio final sin columna Tipo", () => {
+    expect(findMissingPromoColumns(["CODIGO", "PRODUCTO", "PORCENTAJE", "PRECIO FINAL"])).toEqual([]);
+    const r = processPromoRows(
+      [
+        { CODIGO: "A1", PRODUCTO: "X", PORCENTAJE: -0.08, "PRECIO FINAL": 92 },
+        { CODIGO: "B2", PRODUCTO: "Y", PORCENTAJE: -15 },
+        { CODIGO: "B2", PRODUCTO: "Y2", PORCENTAJE: -0.2, "PRECIO FINAL": 80 },
+      ],
+      codes,
+    );
+    expect(r.errors).toHaveLength(0);
+    expect(r.promotions).toEqual([
+      { codigo: "A1", tipo: "porcentaje", valor: 8 },
+      { codigo: "B2", tipo: "porcentaje", valor: 20 },
+    ]);
+    expect(r.warnings).toHaveLength(1);
+  });
+
+  it("precio final solo se usa cuando no hay porcentaje ni tipo", () => {
+    const r = processPromoRows([{ CODIGO: "A1", "PRECIO FINAL": 1234.5 }], codes);
+    expect(r.promotions).toEqual([{ codigo: "A1", tipo: "precio_fijo", valor: 1234.5 }]);
+  });
+
   it("acepta ambas modalidades por fila y reporta duplicados", () => {
     const r = processPromoRows(
       [pro({}), pro({ Codigo: "B2", Tipo: "Fijo", Valor: "1.500,50" }), pro({ Valor: 20 })],
