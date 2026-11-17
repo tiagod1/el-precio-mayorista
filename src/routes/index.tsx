@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ProductCard } from "@/components/ProductCard";
 import { CartSheet } from "@/components/CartSheet";
-import { BestSellersSection, CigarettesSection, NewArrivalsSection, OffersSection, StoreNotices } from "@/components/catalog-sections";
+import { BestSellersSection, CigarettesSection, NewArrivalsSection, OffersSection, SectionTitle, StoreNotices } from "@/components/catalog-sections";
 import { RepeatOrderDialog } from "@/components/RepeatOrder";
 import { fetchAllProducts, fetchSettings, formatDate, isAvailable, normalizeText, type Product } from "@/lib/catalog";
 import { useCart } from "@/lib/cart";
@@ -153,6 +153,16 @@ function Catalog() {
               </button>
             ))}
           </nav>
+          {!searching && cat === "TODAS" && (
+            <div className="mt-6 space-y-10">
+              <OffersSection products={base} promotions={promoList} />
+              <CigarettesSection products={base} promotions={promoList} />
+              <BestSellersSection sellers={bestSellers.data ?? []} products={base} promotions={promoList} />
+              <NewArrivalsSection products={base} promotions={promoList} />
+            </div>
+          )}
+
+          <div className="pt-6"><SectionTitle title={searching ? "Resultados" : cat === "TODAS" ? "Catálogo completo" : cat} /></div>
           <div className="flex flex-wrap items-center gap-2 pb-3">
             <Button variant="outline" className="h-10 rounded-xl" onClick={() => setRepeatOpen(true)}>
               <History className="h-4 w-4" /> Repetir pedido
@@ -185,13 +195,6 @@ function Catalog() {
               <Button variant="outline" className="h-11 rounded-xl px-6" onClick={() => setLimit((l) => l + PAGE)}>Ver más productos</Button>
             </div>
           )}
-
-          <div className="mt-8 space-y-10">
-            <OffersSection products={base} promotions={promoList} />
-            <CigarettesSection products={base} promotions={promoList} />
-            <BestSellersSection sellers={bestSellers.data ?? []} products={base} promotions={promoList} />
-            <NewArrivalsSection products={base} promotions={promoList} />
-          </div>
         </main>
       )}
 

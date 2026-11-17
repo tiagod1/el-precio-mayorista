@@ -3,7 +3,20 @@ import { BadgePercent, Search, Truck } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { ProductCard } from "@/components/ProductCard";
 import { productBrand, normalizeText, type Product } from "@/lib/catalog";
+import { normalizeKey } from "@/lib/import-rules";
 import { isCigaretteProduct } from "@/lib/tobacco";
+
+const PROVIDER_LABELS: Record<string, string> = {
+  "massalin particulares s.r.l": "Massalin",
+  "nobleza": "Nobleza",
+  "tabacos don juan": "Tabacos Don Juan",
+  "espert s.a": "Espert",
+};
+
+function cigaretteGroup(p: Product): string {
+  const prov = normalizeKey(p.proveedor ?? "");
+  return PROVIDER_LABELS[prov] ?? (p.proveedor?.trim() || productBrand(p));
+}
 import { activePromotionFor, promoDiscountPercent, promoPrice, type Promotion } from "@/lib/promotions";
 import type { BestSeller } from "@/lib/orders";
 
@@ -80,18 +93,18 @@ export function CigarettesSection({ products, promotions }: { products: Product[
     const list = products
       .filter(isCigaretteProduct)
       .filter((p) => !term || normalizeText(`${p.nombre} ${p.codigo}`).includes(term))
-      .sort((a, b) => productBrand(a).localeCompare(productBrand(b), "es") || a.nombre.localeCompare(b.nombre, "es"));
+      .sort((a, b) => cigaretteGroup(a).localeCompare(cigaretteGroup(b), "es") || a.nombre.localeCompare(b.nombre, "es"));
     const map = new Map<string, Product[]>();
     for (const p of list) {
-      const brand = productBrand(p);
-      map.set(brand, [...(map.get(brand) ?? []), p]);
+      const group = cigaretteGroup(p);
+      map.set(group, [...(map.get(group) ?? []), p]);
     }
     return [...map.entries()].sort(([a], [b]) => a.localeCompare(b, "es"));
   }, [products, q]);
 
   return (
     <section aria-label="Cigarrillos">
-      <SectionTitle title="Cigarrillos" subtitle="Todos los cigarrillos del catálogo, agrupados por marca." />
+      <SectionTitle title="Cigarrillos" subtitle="Todos los cigarrillos del catálogo, agrupados por proveedor." />
       <div className="relative mb-4">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
