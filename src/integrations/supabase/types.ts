@@ -84,9 +84,13 @@ export type Database = {
           confirmed_at: string | null
           created_at: string
           customer_name: string
+          customer_number: string | null
           customer_phone: string
+          delivery_address: string | null
           id: string
           notes: string | null
+          request_fingerprint: string | null
+          request_key: string | null
           status: Database["public"]["Enums"]["order_status"]
           total: number
           updated_at: string
@@ -96,9 +100,13 @@ export type Database = {
           confirmed_at?: string | null
           created_at?: string
           customer_name: string
+          customer_number?: string | null
           customer_phone: string
+          delivery_address?: string | null
           id?: string
           notes?: string | null
+          request_fingerprint?: string | null
+          request_key?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           total?: number
           updated_at?: string
@@ -108,9 +116,13 @@ export type Database = {
           confirmed_at?: string | null
           created_at?: string
           customer_name?: string
+          customer_number?: string | null
           customer_phone?: string
+          delivery_address?: string | null
           id?: string
           notes?: string | null
+          request_fingerprint?: string | null
+          request_key?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           total?: number
           updated_at?: string
@@ -213,6 +225,11 @@ export type Database = {
         Row: {
           familias_excluidas: string[]
           id: number
+          mp_cap: number
+          mp_days: number[]
+          mp_enabled: boolean
+          mp_minimum: number
+          mp_percent: number
           ocultar_sin_stock: boolean
           ultima_actualizacion: string | null
           ultimo_archivo: string | null
@@ -222,6 +239,11 @@ export type Database = {
         Insert: {
           familias_excluidas?: string[]
           id?: number
+          mp_cap?: number
+          mp_days?: number[]
+          mp_enabled?: boolean
+          mp_minimum?: number
+          mp_percent?: number
           ocultar_sin_stock?: boolean
           ultima_actualizacion?: string | null
           ultimo_archivo?: string | null
@@ -231,6 +253,11 @@ export type Database = {
         Update: {
           familias_excluidas?: string[]
           id?: number
+          mp_cap?: number
+          mp_days?: number[]
+          mp_enabled?: boolean
+          mp_minimum?: number
+          mp_percent?: number
           ocultar_sin_stock?: boolean
           ultima_actualizacion?: string | null
           ultimo_archivo?: string | null
@@ -267,6 +294,18 @@ export type Database = {
         Returns: undefined
       }
       confirm_order: { Args: { p_order_id: string }; Returns: undefined }
+      create_catalog_order: {
+        Args: {
+          p_address: string
+          p_customer_number: string
+          p_items: Json
+          p_name: string
+          p_phone: string
+          p_request_key: string
+          p_token?: string
+        }
+        Returns: Json
+      }
       create_customer_order: {
         Args: {
           p_items: Json
